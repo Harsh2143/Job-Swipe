@@ -4,18 +4,18 @@ import InterviewPrep from './InterviewPrep';
 
 export default function JobCard({ job, onSwipe, index, total, userSkills }) {
   const [aiData, setAiData] = useState(null);
-  const [loading, setLoading] = useState(true);
+  const [loadingAI, setLoadingAI] = useState(true);
   const [swiping, setSwiping] = useState(null);
   const [showPrep, setShowPrep] = useState(false);
 
-useEffect(() => {
+  useEffect(() => {
     setAiData(null);
     setLoadingAI(true);
-    getMatchScore(currentJob, USER_SKILLS).then(data => {
+    getMatchScore(job, userSkills).then(data => {
       setAiData(data);
       setLoadingAI(false);
     });
-}, [job, userSkills]);
+  }, [job, userSkills]);
 
   const handleSwipe = (dir) => {
     setSwiping(dir);
@@ -80,7 +80,7 @@ useEffect(() => {
         </div>
 
         <div className="ai-score-box">
-          {loading ? (
+          {loadingAI ? (
             <div className="ai-loading">
               <div className="spinner-small" />
               <span>AI analyzing your fit...</span>
@@ -124,18 +124,19 @@ useEffect(() => {
           </button>
         </div>
 
-      </div>
-      <button className="prep-trigger-btn" onClick={() => setShowPrep(true)}>
-  🎯 Practice Interview for this Role
-</button>
+        <button className="prep-trigger-btn" onClick={() => setShowPrep(true)}>
+          🎯 Practice Interview for this Role
+        </button>
 
-{showPrep && (
-  <InterviewPrep
-    job={job}
-    userSkills={userSkills}
-    onClose={() => setShowPrep(false)}
-  />
-)}
+        {showPrep && (
+          <InterviewPrep
+            job={job}
+            userSkills={userSkills}
+            onClose={() => setShowPrep(false)}
+          />
+        )}
+
+      </div>
     </div>
   );
 }

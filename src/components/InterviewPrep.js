@@ -10,9 +10,9 @@ export default function InterviewPrep({ job, userSkills, onClose }) {
   const [userAnswer, setUserAnswer] = useState('');
   const [feedback, setFeedback] = useState(null);
   const [feedbackLoading, setFeedbackLoading] = useState(false);
+  const [feedbackLoading, setFeedbackLoading] = useState(false);
 
-  const generateQuestions = async () => {
-    setLoading(true);
+const generateQuestions = async () => {
     setPhase('loading');
     try {
       const model = genAI.getGenerativeModel({ model: 'gemini-2.0-flash' });
@@ -23,7 +23,6 @@ Required Skills: ${job.skills.join(', ')}
 Candidate Skills: ${userSkills.join(', ')}
 Return ONLY a JSON array, no markdown, nothing else:
 [{"id":1,"type":"Technical","question":"...","tip":"..."},{"id":2,"type":"Behavioral","question":"...","tip":"..."}]`;
-
       const result = await model.generateContent(prompt);
       const text = result.response.text();
       const clean = text.replace(/```json|```/g, '').trim();
@@ -33,7 +32,6 @@ Return ONLY a JSON array, no markdown, nothing else:
       console.error(err);
       setPhase('intro');
     }
-    setLoading(false);
   };
 
   const getFeedback = async () => {
