@@ -6,7 +6,6 @@ const genAI = new GoogleGenerativeAI('AIzaSyAeDmzfWjhScxIhmhXp_YPEIVYbImkM2UY');
 export default function InterviewPrep({ job, userSkills, onClose }) {
   const [phase, setPhase] = useState('intro');
   const [questions, setQuestions] = useState([]);
-  const [loading, setLoading] = useState(false);
   const [activeQuestion, setActiveQuestion] = useState(null);
   const [userAnswer, setUserAnswer] = useState('');
   const [feedback, setFeedback] = useState(null);

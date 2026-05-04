@@ -8,14 +8,14 @@ export default function JobCard({ job, onSwipe, index, total, userSkills }) {
   const [swiping, setSwiping] = useState(null);
   const [showPrep, setShowPrep] = useState(false);
 
-  useEffect(() => {
+useEffect(() => {
     setAiData(null);
-    setLoading(true);
-    getMatchScore(job, userSkills).then(data => {
+    setLoadingAI(true);
+    getMatchScore(currentJob, USER_SKILLS).then(data => {
       setAiData(data);
-      setLoading(false);
+      setLoadingAI(false);
     });
-  }, [job]);
+}, [job, userSkills]);
 
   const handleSwipe = (dir) => {
     setSwiping(dir);
