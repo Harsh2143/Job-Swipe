@@ -26,9 +26,9 @@ export default function JobCard({ job, onSwipe, index, total, userSkills }) {
   };
 
   const getScoreColor = (score) => {
-    if (score >= 80) return '#057642';
-    if (score >= 60) return '#b45309';
-    return '#cc1016';
+    if (score >= 80) return '#10b981';
+    if (score >= 60) return '#f59e0b';
+    return '#ef4444';
   };
 
   const getScoreLabel = (score) => {
@@ -59,7 +59,10 @@ export default function JobCard({ job, onSwipe, index, total, userSkills }) {
         </div>
 
         <div className="card-company-row">
-          <div className="company-logo">{companyEmojis[job.company] || '🏢'}</div>
+          {job.employerLogo ? (
+            <img src={job.employerLogo} alt={job.company} className="company-logo-img" onError={e => { e.target.style.display = 'none'; e.target.nextSibling.style.display = 'flex'; }} />
+          ) : null}
+          <div className="company-logo" style={job.employerLogo ? { display: 'none' } : {}}>{companyEmojis[job.company] || '🏢'}</div>
           <div>
             <h2 className="job-role">{job.role}</h2>
             <p className="job-company">{job.company} • {job.location}</p>
@@ -68,7 +71,8 @@ export default function JobCard({ job, onSwipe, index, total, userSkills }) {
 
         <div className="job-meta">
           <span className="stipend-tag">💰 {job.stipend}</span>
-          <span className="type-tag">📅 Internship</span>
+          <span className="type-tag">📋 {job.domain}</span>
+          {job.isRemote && <span className="type-tag">🌍 Remote</span>}
         </div>
 
         <p className="job-description">{job.description}</p>
@@ -86,26 +90,27 @@ export default function JobCard({ job, onSwipe, index, total, userSkills }) {
               <span>AI analyzing your fit...</span>
             </div>
           ) : aiData ? (
-            <>
-              <div className="score-header">
-                <span className="score-label-text">🤖 AI Match Score</span>
-                <div className="score-right">
-                  <span className="score-match-label" style={{ color: getScoreColor(aiData.score) }}>
-                    {getScoreLabel(aiData.score)}
-                  </span>
-                  <span className="score-number" style={{ color: getScoreColor(aiData.score) }}>
-                    {aiData.score}%
-                  </span>
-                </div>
+            <div className="score-ring-container">
+              <svg className="score-ring" viewBox="0 0 70 70">
+                <circle className="score-ring-bg" cx="35" cy="35" r="28" />
+                <circle className="score-ring-fill" cx="35" cy="35" r="28"
+                  style={{
+                    stroke: getScoreColor(aiData.score),
+                    strokeDasharray: `${2 * Math.PI * 28}`,
+                    strokeDashoffset: `${2 * Math.PI * 28 * (1 - aiData.score / 100)}`,
+                    transform: 'rotate(-90deg)',
+                    transformOrigin: 'center'
+                  }} />
+                <text className="score-ring-text" x="35" y="35">{aiData.score}</text>
+              </svg>
+              <div className="score-info">
+                <span className="score-label-text">🤖 AI Match</span>
+                <span className="score-match-label" style={{ color: getScoreColor(aiData.score) }}>
+                  {getScoreLabel(aiData.score)}
+                </span>
+                <p className="ai-reason">"{aiData.reason}"</p>
               </div>
-              <div className="score-bar-bg">
-                <div className="score-bar-fill" style={{
-                  width: `${aiData.score}%`,
-                  background: getScoreColor(aiData.score)
-                }} />
-              </div>
-              <p className="ai-reason">"{aiData.reason}"</p>
-            </>
+            </div>
           ) : null}
         </div>
 
@@ -123,6 +128,12 @@ export default function JobCard({ job, onSwipe, index, total, userSkills }) {
             <span className="btn-label">Apply</span>
           </button>
         </div>
+
+        {job.applyLink && (
+          <a href={job.applyLink} target="_blank" rel="noopener noreferrer" className="prep-trigger-btn" style={{ textDecoration: 'none', textAlign: 'center', background: '#0a66c2', color: '#fff' }}>
+            🔗 Apply on Company Site
+          </a>
+        )}
 
         <button className="prep-trigger-btn" onClick={() => setShowPrep(true)}>
           🎯 Practice Interview for this Role

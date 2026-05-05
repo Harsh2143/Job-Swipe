@@ -1,61 +1,11 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import './App.css';
 import Navbar from './components/Navbar';
 import JobCard from './components/JobCard';
 import Dashboard from './components/Dashboard';
 import AppliedJobs from './components/AppliedJobs';
 import ResumeUpload from './components/ResumeUpload';
-
-const JOBS = [
-  {
-    id: 1, role: "Frontend Developer Intern", company: "Google",
-    location: "Bangalore, India", stipend: "₹50,000/month",
-    skills: ["React", "JavaScript", "CSS"], domain: "Web Development",
-    description: "Work on Google's internal dashboards and consumer-facing web products with the UI team."
-  },
-  {
-    id: 2, role: "ML Engineer Intern", company: "Microsoft",
-    location: "Hyderabad, India", stipend: "₹60,000/month",
-    skills: ["Python", "TensorFlow", "Data Analysis"], domain: "Artificial Intelligence",
-    description: "Build and deploy machine learning models for Azure cloud services."
-  },
-  {
-    id: 3, role: "Backend Developer Intern", company: "Flipkart",
-    location: "Bangalore, India", stipend: "₹40,000/month",
-    skills: ["Node.js", "MongoDB", "REST APIs"], domain: "Backend Development",
-    description: "Design scalable APIs handling millions of requests for India's largest e-commerce platform."
-  },
-  {
-    id: 4, role: "Data Science Intern", company: "Swiggy",
-    location: "Bangalore, India", stipend: "₹45,000/month",
-    skills: ["Python", "SQL", "Machine Learning"], domain: "Data Science",
-    description: "Analyze delivery patterns and build predictive models to optimize Swiggy's logistics."
-  },
-  {
-    id: 5, role: "Android Developer Intern", company: "Paytm",
-    location: "Noida, India", stipend: "₹35,000/month",
-    skills: ["Kotlin", "Android SDK", "Firebase"], domain: "Mobile Development",
-    description: "Develop new features for Paytm's Android app used by 300M+ users."
-  },
-  {
-    id: 6, role: "Full Stack Developer Intern", company: "Amazon",
-    location: "Bangalore, India", stipend: "₹55,000/month",
-    skills: ["React", "Node.js", "AWS", "MongoDB"], domain: "Web Development",
-    description: "Build internal tools and customer-facing features for Amazon India's marketplace team."
-  },
-  {
-    id: 7, role: "Data Analyst Intern", company: "Infosys",
-    location: "Pune, India", stipend: "₹25,000/month",
-    skills: ["Python", "SQL", "Tableau", "Excel"], domain: "Data Science",
-    description: "Analyze large datasets to derive business insights for enterprise clients."
-  },
-  {
-    id: 8, role: "DevOps Intern", company: "Wipro",
-    location: "Chennai, India", stipend: "₹30,000/month",
-    skills: ["Docker", "Kubernetes", "CI/CD", "Linux"], domain: "DevOps",
-    description: "Maintain and improve CI/CD pipelines and cloud infrastructure for enterprise projects."
-  }
-];
+import { fetchJobs } from './jobSearch';
 
 export default function App() {
   const [currentView, setCurrentView] = useState('upload');
@@ -63,14 +13,45 @@ export default function App() {
   const [appliedJobs, setAppliedJobs] = useState([]);
   const [skippedJobs, setSkippedJobs] = useState([]);
   const [userSkills, setUserSkills] = useState([]);
+  const [jobs, setJobs] = useState([]);
+  const [loadingJobs, setLoadingJobs] = useState(false);
+  const [jobError, setJobError] = useState(null);
+  const [page, setPage] = useState(1);
 
-  const currentJob = JOBS[currentIndex];
-  const isFinished = currentIndex >= JOBS.length;
+  const loadJobs = useCallback(async (skills, pageNum = 1) => {
+    setLoadingJobs(true);
+    setJobError(null);
+    try {
+      const newJobs = await fetchJobs(skills, pageNum);
+      if (pageNum === 1) {
+        setJobs(newJobs);
+      } else {
+        setJobs(prev => [...prev, ...newJobs]);
+      }
+    } catch (err) {
+      console.error('Failed to fetch jobs:', err);
+      setJobError('Failed to load jobs. Please try again.');
+    }
+    setLoadingJobs(false);
+  }, []);
 
   const handleSkillsExtracted = (skills) => {
     setUserSkills(skills);
     setCurrentView('swipe');
+    loadJobs(skills, 1);
   };
+
+  // Load more jobs when user is near the end
+  useEffect(() => {
+    if (jobs.length > 0 && currentIndex >= jobs.length - 2 && !loadingJobs) {
+      const nextPage = page + 1;
+      setPage(nextPage);
+      loadJobs(userSkills, nextPage);
+    }
+  }, [currentIndex, jobs.length, loadingJobs, page, userSkills, loadJobs]);
+
+  const currentJob = jobs[currentIndex];
+  const isFinished = !loadingJobs && jobs.length > 0 && currentIndex >= jobs.length;
 
   const handleSwipe = (direction, aiScore) => {
     if (direction === 'right' || direction === 'super') {
@@ -98,11 +79,26 @@ export default function App() {
 
         {currentView === 'swipe' && (
           <div className="swipe-view">
-            {isFinished ? (
+            {loadingJobs && jobs.length === 0 ? (
+              <div className="finished-card">
+                <div className="spinner" />
+                <h2 style={{ marginTop: 16 }}>Finding jobs for you...</h2>
+                <p>Searching for {userSkills.slice(0, 3).join(', ')} roles</p>
+              </div>
+            ) : jobError && jobs.length === 0 ? (
+              <div className="finished-card">
+                <div className="finished-icon">😕</div>
+                <h2>Couldn't load jobs</h2>
+                <p>{jobError}</p>
+                <button className="primary-btn" onClick={() => loadJobs(userSkills, 1)}>
+                  Try Again
+                </button>
+              </div>
+            ) : isFinished ? (
               <div className="finished-card">
                 <div className="finished-icon">🎉</div>
                 <h2>All caught up!</h2>
-                <p>You've seen all {JOBS.length} jobs</p>
+                <p>You've seen all {jobs.length} jobs</p>
                 <p className="finished-sub">Applied to <strong>{appliedJobs.length}</strong> positions</p>
                 <div className="finished-actions">
                   <button className="primary-btn" onClick={() => setCurrentView('applied')}>
@@ -112,20 +108,22 @@ export default function App() {
                     setCurrentIndex(0);
                     setAppliedJobs([]);
                     setSkippedJobs([]);
+                    setPage(1);
+                    loadJobs(userSkills, 1);
                   }}>
-                    Start Over
+                    Find More Jobs
                   </button>
                 </div>
               </div>
-            ) : (
+            ) : currentJob ? (
               <JobCard
                 job={currentJob}
                 onSwipe={handleSwipe}
                 index={currentIndex}
-                total={JOBS.length}
+                total={jobs.length}
                 userSkills={userSkills}
               />
-            )}
+            ) : null}
           </div>
         )}
 

@@ -1,7 +1,13 @@
 import React, { useState } from 'react';
 import { GoogleGenerativeAI } from '@google/generative-ai';
 
-const genAI = new GoogleGenerativeAI('AIzaSyAeDmzfWjhScxIhmhXp_YPEIVYbImkM2UY');
+const genAI = new GoogleGenerativeAI('AIzaSyAP6vezBojykl78SQmQBmAQ4KPNI7G_OZg');
+
+async function callAI(prompt) {
+  const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash' });
+  const result = await model.generateContent(prompt);
+  return result.response.text();
+}
 
 export default function InterviewPrep({ job, userSkills, onClose }) {
   const [phase, setPhase] = useState('intro');
@@ -10,21 +16,17 @@ export default function InterviewPrep({ job, userSkills, onClose }) {
   const [userAnswer, setUserAnswer] = useState('');
   const [feedback, setFeedback] = useState(null);
   const [feedbackLoading, setFeedbackLoading] = useState(false);
- 
 
-const generateQuestions = async () => {
+  const generateQuestions = async () => {
     setPhase('loading');
     try {
-      const model = genAI.getGenerativeModel({ model: 'gemini-2.0-flash' });
-      const prompt = `Generate 5 interview questions for this job. Mix technical and behavioral.
+      const text = await callAI(`Generate 5 interview questions for this job. Mix technical and behavioral.
 Role: ${job.role}
 Company: ${job.company}
 Required Skills: ${job.skills.join(', ')}
 Candidate Skills: ${userSkills.join(', ')}
 Return ONLY a JSON array, no markdown, nothing else:
-[{"id":1,"type":"Technical","question":"...","tip":"..."},{"id":2,"type":"Behavioral","question":"...","tip":"..."}]`;
-      const result = await model.generateContent(prompt);
-      const text = result.response.text();
+[{"id":1,"type":"Technical","question":"...","tip":"..."},{"id":2,"type":"Behavioral","question":"...","tip":"..."}]`);
       const clean = text.replace(/```json|```/g, '').trim();
       setQuestions(JSON.parse(clean));
       setPhase('questions');
@@ -39,16 +41,12 @@ Return ONLY a JSON array, no markdown, nothing else:
     setFeedbackLoading(true);
     setPhase('feedback');
     try {
-      const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
-      const prompt = `You are an expert interviewer at ${job.company}.
+      const text = await callAI(`You are an expert interviewer at ${job.company}.
 Question: ${activeQuestion.question}
 Candidate Answer: ${userAnswer}
 Role: ${job.role}
 Return ONLY this JSON, no markdown, nothing else:
-{"score":75,"verdict":"Good answer","strengths":"...","improve":"...","ideal":"..."}`;
-
-      const result = await model.generateContent(prompt);
-      const text = result.response.text();
+{"score":75,"verdict":"Good answer","strengths":"...","improve":"...","ideal":"..."}`);
       const clean = text.replace(/```json|```/g, '').trim();
       setFeedback(JSON.parse(clean));
     } catch (err) {
@@ -62,7 +60,6 @@ Return ONLY this JSON, no markdown, nothing else:
   return (
     <div className="prep-overlay">
       <div className="prep-modal">
-
         <div className="prep-header">
           <div>
             <h2>🎯 Interview Prep</h2>
@@ -192,7 +189,6 @@ Return ONLY this JSON, no markdown, nothing else:
             )}
           </div>
         )}
-
       </div>
     </div>
   );

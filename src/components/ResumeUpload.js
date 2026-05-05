@@ -1,20 +1,47 @@
 import React, { useState } from 'react';
 import { GoogleGenerativeAI } from '@google/generative-ai';
 
-const genAI = new GoogleGenerativeAI('AIzaSyAeDmzfWjhScxIhmhXp_YPEIVYbImkM2UY');
+const genAI = new GoogleGenerativeAI('AIzaSyAP6vezBojykl78SQmQBmAQ4KPNI7G_OZg');
+
+async function callAI(prompt) {
+  const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash' });
+  const result = await model.generateContent(prompt);
+  return result.response.text();
+}
 
 function ManualSkills({ onSkillsExtracted }) {
   const [input, setInput] = useState('');
   const [skills, setSkills] = useState([]);
+  const [checking, setChecking] = useState(false);
+  const [rejected, setRejected] = useState(null);
 
-  const addSkill = (e) => {
+  const addSkill = async (e) => {
     if (e.key === 'Enter' || e.key === ',') {
       e.preventDefault();
       const skill = input.trim().replace(',', '');
-      if (skill && !skills.includes(skill)) {
+      if (!skill || skills.includes(skill)) { setInput(''); return; }
+
+      setChecking(true);
+      setRejected(null);
+      try {
+        const response = await callAI(
+          `Is "${skill}" a real technical skill, programming language, framework, tool, software, or professional skill used in jobs? Reply with ONLY "yes" or "no", nothing else.`
+        );
+        const answer = response.trim().toLowerCase();
+        if (answer.startsWith('yes')) {
+          setSkills(prev => [...prev, skill]);
+          setInput('');
+        } else {
+          setRejected(`"${skill}" doesn't look like a technical skill.`);
+          setTimeout(() => setRejected(null), 3000);
+        }
+      } catch (err) {
+        console.error('Skill validation error:', err);
+        // On API error, allow the skill through rather than blocking the user
         setSkills(prev => [...prev, skill]);
+        setInput('');
       }
-      setInput('');
+      setChecking(false);
     }
   };
 
@@ -24,14 +51,31 @@ function ManualSkills({ onSkillsExtracted }) {
 
   return (
     <div className="manual-skills">
-      <input
-        className="skill-input"
-        type="text"
-        placeholder="Type a skill and press Enter (e.g. Python)"
-        value={input}
-        onChange={e => setInput(e.target.value)}
-        onKeyDown={addSkill}
-      />
+      <div style={{ position: 'relative' }}>
+        <input
+          className="skill-input"
+          type="text"
+          placeholder="Type a skill and press Enter (e.g. Python)"
+          value={input}
+          onChange={e => { setInput(e.target.value); setRejected(null); }}
+          onKeyDown={addSkill}
+          disabled={checking}
+        />
+        {checking && (
+          <span style={{
+            position: 'absolute', right: 14, top: '50%', transform: 'translateY(-50)',
+            fontSize: 13, color: '#888', display: 'flex', alignItems: 'center', gap: 6
+          }}>
+            <span className="spinner" style={{ width: 14, height: 14, borderWidth: 2 }} />
+            Checking...
+          </span>
+        )}
+      </div>
+      {rejected && (
+        <p style={{ color: '#e53e3e', fontSize: 13, margin: '8px 0 0', fontWeight: 500 }}>
+          ⚠️ {rejected}
+        </p>
+      )}
       {skills.length > 0 && (
         <>
           <div className="skills-row" style={{ marginTop: 12 }}>
@@ -66,13 +110,21 @@ export default function ResumeUpload({ onSkillsExtracted }) {
     setExtractedSkills([]);
 
     try {
+      console.log('[ResumeUpload] Step 1: Extracting text from PDF...');
       const text = await extractTextFromPDF(file);
-      if (!text || text.trim().length < 20) throw new Error('Too short');
-      const skills = await extractSkillsWithAI(text);
+      console.log('[ResumeUpload] Step 2: Extracted text length:', text?.length, 'Preview:', text?.slice(0, 200));
+      if (!text || text.trim().length < 20) throw new Error('PDF text too short or empty: ' + (text?.length || 0) + ' chars');
+      console.log('[ResumeUpload] Step 3: Calling AI to extract skills...');
+      const raw = await callAI(`Extract technical skills from this resume. Return ONLY a JSON array of skill strings, no markdown, nothing else. Example: ["Python", "React", "SQL"]
+Resume: ${text.slice(0, 3000)}`);
+      console.log('[ResumeUpload] Step 4: AI response:', raw);
+      const clean = raw.replace(/```json|```/g, '').trim();
+      const skills = JSON.parse(clean);
+      console.log('[ResumeUpload] Step 5: Parsed skills:', skills);
       setExtractedSkills(skills);
     } catch (err) {
-      console.error(err);
-      setError('Could not read resume. Please use the manual skill entry below.');
+      console.error('[ResumeUpload] Error at step:', err);
+      setError('Could not read resume. Please use manual skill entry below.');
     }
     setLoading(false);
   };
@@ -89,16 +141,6 @@ export default function ResumeUpload({ onSkillsExtracted }) {
       fullText += content.items.map(item => item.str).join(' ') + '\n';
     }
     return fullText;
-  };
-
-  const extractSkillsWithAI = async (resumeText) => {
-    const model = genAI.getGenerativeModel({ model: 'gemini-2.0-flash' });
-    const prompt = `Extract technical skills from this resume. Return ONLY a JSON array of skill strings, no markdown, nothing else. Example: ["Python", "React", "SQL"]
-Resume: ${resumeText.slice(0, 3000)}`;
-    const result = await model.generateContent(prompt);
-    const text = result.response.text();
-    const clean = text.replace(/```json|```/g, '').trim();
-    return JSON.parse(clean);
   };
 
   return (
