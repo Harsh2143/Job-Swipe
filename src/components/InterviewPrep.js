@@ -10,7 +10,7 @@ export default function InterviewPrep({ job, userSkills, onClose }) {
   const [userAnswer, setUserAnswer] = useState('');
   const [feedback, setFeedback] = useState(null);
   const [feedbackLoading, setFeedbackLoading] = useState(false);
-  const [feedbackLoading, setFeedbackLoading] = useState(false);
+ 
 
 const generateQuestions = async () => {
     setPhase('loading');
