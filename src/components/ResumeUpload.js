@@ -23,6 +23,16 @@ function ManualSkills({ onSkillsExtracted }) {
 
       setChecking(true);
       setRejected(null);
+
+      // Local pre-check: must be 2-30 chars, contain a letter, not be a common name pattern
+      const isValidFormat = skill.length >= 2 && skill.length <= 30 && /[a-zA-Z]/.test(skill) && !/^\d+$/.test(skill);
+      if (!isValidFormat) {
+        setRejected(`"${skill}" doesn't look like a technical skill.`);
+        setTimeout(() => setRejected(null), 3000);
+        setChecking(false);
+        return;
+      }
+
       try {
         const response = await callAI(
           `Is "${skill}" a real technical skill, programming language, framework, tool, software, or professional skill used in jobs? Reply with ONLY "yes" or "no", nothing else.`
@@ -37,9 +47,8 @@ function ManualSkills({ onSkillsExtracted }) {
         }
       } catch (err) {
         console.error('Skill validation error:', err);
-        // On API error, allow the skill through rather than blocking the user
-        setSkills(prev => [...prev, skill]);
-        setInput('');
+        setRejected('Could not verify skill. Please try again.');
+        setTimeout(() => setRejected(null), 3000);
       }
       setChecking(false);
     }
