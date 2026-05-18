@@ -8,7 +8,7 @@ body{font-family:'Inter',-apple-system,sans-serif;background:var(--bg);color:var
 .navbar{background:rgba(10,14,23,0.7);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);border-bottom:1px solid var(--border);padding:0 24px;display:flex;align-items:center;justify-content:space-between;height:60px;position:sticky;top:0;z-index:100}
 .nav-logo{display:flex;align-items:center;gap:8px}
 .logo-icon{font-size:1.3rem}
-.logo-text{font-size:1.2rem;font-weight:800;background:linear-gradient(135deg,var(--blue),var(--emerald));-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+.logo-text{font-size:1.2rem;font-weight:800;background:linear-gradient(135deg,var(--blue),var(--emerald));-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;color:transparent}
 .logo-badge{background:linear-gradient(135deg,var(--blue),var(--emerald));color:white;font-size:.6rem;font-weight:700;padding:2px 6px;border-radius:6px;letter-spacing:.5px}
 .nav-links{display:flex;gap:4px}
 .nav-btn{background:none;border:none;padding:8px 14px;border-radius:10px;cursor:pointer;font-size:.82rem;color:var(--text2);font-weight:500;transition:all .3s;font-family:inherit;position:relative}
